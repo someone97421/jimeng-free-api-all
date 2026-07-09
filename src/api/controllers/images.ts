@@ -12,6 +12,7 @@ export const DEFAULT_MODEL = "jimeng-image-5.0-lite";
 const DRAFT_VERSION = "3.3.20";
 const WEB_VERSION = "7.5.0";
 const MIN_VERSION = "3.0.2";
+const MAX_REFERENCE_IMAGES = 10;
 
 const MODEL_MAP = {
   "jimeng-image-5.0-lite": "high_aes_general_v50",
@@ -172,36 +173,43 @@ export async function generateImages(
     sampleStrength = 0.5,
     negativePrompt = "",
     filePath = "",
+    filePaths = [],
   }: {
     ratio?: string;
     resolution?: string;
     sampleStrength?: number;
     negativePrompt?: string;
-    filePath?: string; // 参考图路径，支持本地/网络
+    filePath?: string; // 兼容旧调用：单张参考图路径，支持本地/网络
+    filePaths?: string[]; // 多张参考图路径，支持本地/网络/base64
   },
   refreshToken: string
 ) {
-  // 检查是否有参考图
-  const hasFilePath = !!filePath;
-  let uploadID: string | null = null;
+  const referenceFilePaths = [...(filePath ? [filePath] : []), ...filePaths]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .slice(0, MAX_REFERENCE_IMAGES);
+  const hasFilePath = referenceFilePaths.length > 0;
+  const uploadedImages: Array<{ image_uri: string; source: string }> = [];
 
   // 如果有参考图，先上传
   if (hasFilePath) {
-    // 只显示类型信息，不显示完整的base64内容
-    const fileDesc = filePath.startsWith("data:")
-      ? `base64图片(${filePath.length}字符)`
-      : filePath.substring(0, 80);
-    logger.info(`🖼️ [参考图] 检测到参考图: ${fileDesc} → 混合模式`);
-    try {
-      const uploadResult = await uploadFile(refreshToken, filePath);
-      uploadID = uploadResult.image_uri;
-      logger.info(`✅ [参考图] 上传成功 | URI: ${uploadID}`);
-    } catch (error) {
-      logger.error(`❌ [参考图] 上传失败: ${error.message}`);
-      throw new APIException(
-        EX.API_REQUEST_FAILED,
-        `参考图上传失败: ${error.message}`
-      );
+    logger.info(`🖼️ [参考图] 检测到 ${referenceFilePaths.length} 张参考图 → 混合模式`);
+    for (let index = 0; index < referenceFilePaths.length; index += 1) {
+      const item = referenceFilePaths[index];
+      const fileDesc = item.startsWith("data:")
+        ? `base64图片(${item.length}字符)`
+        : item.substring(0, 80);
+      try {
+        const uploadResult = await uploadFile(refreshToken, item);
+        uploadedImages.push({ image_uri: uploadResult.image_uri, source: item });
+        logger.info(`✅ [参考图] 第 ${index + 1}/${referenceFilePaths.length} 张上传成功 | URI: ${uploadResult.image_uri} | 来源: ${fileDesc}`);
+      } catch (error) {
+        logger.error(`❌ [参考图] 第 ${index + 1} 张上传失败: ${error.message}`);
+        throw new APIException(
+          EX.API_REQUEST_FAILED,
+          `第 ${index + 1} 张参考图上传失败: ${error.message}`
+        );
+      }
     }
   }
 
@@ -273,7 +281,8 @@ export async function generateImages(
   // 构建 abilities 对象
   let abilities: Record<string, any>;
 
-  if (hasFilePath && uploadID) {
+  if (hasFilePath && uploadedImages.length > 0) {
+    const imageUriList = uploadedImages.map((item) => item.image_uri);
     // 混合模式 abilities
     abilities = {
       type: "",
@@ -302,21 +311,19 @@ export async function generateImages(
             type: "",
             id: util.uuid(),
             name: "byte_edit",
-            image_uri_list: [uploadID],
-            image_list: [
-              {
+            image_uri_list: imageUriList,
+            image_list: imageUriList.map((imageUri) => ({
                 type: "image",
                 id: util.uuid(),
                 source_from: "upload",
                 platform_type: 1,
                 name: "",
-                image_uri: uploadID,
+                image_uri: imageUri,
                 width: 0,
                 height: 0,
                 format: "",
-                uri: uploadID,
-              },
-            ],
+                uri: imageUri,
+              })),
             strength: 0.5,
           },
         ],
@@ -630,6 +637,7 @@ export async function generateImagesWithRetry(
     sampleStrength?: number;
     negativePrompt?: string;
     filePath?: string;
+    filePaths?: string[];
   },
   refreshToken: string
 ): Promise<string[]> {

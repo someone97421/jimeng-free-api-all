@@ -328,9 +328,14 @@ function slugify(value: string) {
   return slug || "model";
 }
 
+function isSeedream50ProName(name?: string) {
+  return !!name && /(?:seedream|图片)?\s*5(?:\.|_)?0\s*pro/i.test(name);
+}
+
 function makeDynamicId(type: JimengModelType, modelReqKey: string, name?: string) {
   const known = type === "image" ? IMAGE_REQ_KEY_IDS[modelReqKey] : VIDEO_REQ_KEY_IDS[modelReqKey];
   if (known) return known;
+  if (type === "image" && isSeedream50ProName(name)) return "jimeng-image-5.0-pro";
 
   const base = name && /[a-z0-9]/i.test(name) ? name : modelReqKey;
   return `jimeng-${type}-${slugify(base)}`;
@@ -403,8 +408,9 @@ function sortVideoResolutions(resolutions: string[]) {
   return priority.filter((resolution) => resolutions.includes(resolution));
 }
 
-function inferImageResolutions(modelReqKey: string, staticConfig?: JimengModelConfig) {
+function inferImageResolutions(modelReqKey: string, staticConfig?: JimengModelConfig, name?: string) {
   if (staticConfig) return staticConfig.supportedResolutions;
+  if (isSeedream50ProName(name)) return ["4k", "2k", "1k"];
   if (/v5|v4|general_v4|general_v5/.test(modelReqKey)) return ["4k", "2k"];
   return ["1k"];
 }
@@ -473,7 +479,7 @@ function parseImageModel(candidate: any): JimengModelConfig | null {
   const supportedResolutions =
     preferredResolutions.length > 0
       ? preferredResolutions
-      : inferImageResolutions(modelReqKey, staticConfig);
+      : inferImageResolutions(modelReqKey, staticConfig, name);
 
   return {
     ...(staticConfig || {}),

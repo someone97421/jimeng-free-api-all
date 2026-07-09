@@ -8,6 +8,32 @@ import db from "@/lib/database.ts";
 import APIException from "@/lib/exceptions/APIException.ts";
 import EX from "@/api/consts/exceptions.ts";
 
+function toStringArray(value: unknown): string[] {
+  if (_.isUndefined(value) || _.isNull(value)) return [];
+  if (_.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+  const normalized = String(value || "").trim();
+  return normalized ? [normalized] : [];
+}
+
+function collectUploadedFilePaths(files: any): string[] {
+  const result: string[] = [];
+  if (_.isEmpty(files)) return result;
+
+  _.forEach(files, (fileOrFiles) => {
+    const list = _.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+    list.forEach((file) => {
+      const filePath = file?.filepath || file?.path;
+      if (filePath) result.push(filePath);
+    });
+  });
+
+  return result;
+}
+
 export default {
   prefix: "/v1/images",
 
@@ -22,6 +48,9 @@ export default {
         .validate("body.sample_strength", v => _.isUndefined(v) || _.isFinite(v))
         .validate("body.response_format", v => _.isUndefined(v) || _.isString(v))
         .validate("body.filePath", v => _.isUndefined(v) || _.isString(v))
+        .validate("body.filePaths", v => _.isUndefined(v) || _.isString(v) || _.isArray(v))
+        .validate("body.file_paths", v => _.isUndefined(v) || _.isString(v) || _.isArray(v))
+        .validate("body.images", v => _.isUndefined(v) || _.isString(v) || _.isArray(v))
         .validate("headers.authorization", _.isString);
       // refresh_token切分
       const tokens = tokenSplit(request.headers.authorization);
@@ -39,20 +68,21 @@ export default {
         sample_strength: sampleStrength,
         response_format,
         filePath: bodyFilePath,
+        filePaths: bodyFilePaths,
+        file_paths: bodyFilePathsSnake,
+        images: bodyImages,
       } = request.body;
       
       // 处理文件上传 (multipart/form-data)
-      let filePath = bodyFilePath;
+      const filePaths = [
+        ...toStringArray(bodyFilePath),
+        ...toStringArray(bodyFilePaths),
+        ...toStringArray(bodyFilePathsSnake),
+        ...toStringArray(bodyImages),
+      ];
       // @ts-ignore
       const files = request.files || {};
-      // 检查是否有上传的文件
-      if (!filePath && !_.isEmpty(files)) {
-        const fileKey = Object.keys(files)[0];
-        const file = files[fileKey];
-        if (file) {
-            filePath = file.filepath || file.path;
-        }
-      }
+      filePaths.push(...collectUploadedFilePaths(files));
 
       const responseFormat = _.defaultTo(response_format, "url");
       const imageUrls = await generateImagesWithRetry(model, prompt, {
@@ -60,7 +90,7 @@ export default {
         resolution,
         sampleStrength,
         negativePrompt,
-        filePath,
+        filePaths,
       }, token);
       
       // 记录统计和媒体

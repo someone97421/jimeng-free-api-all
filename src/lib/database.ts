@@ -193,12 +193,14 @@ export function saveMedia(type: 'image' | 'video', url: string, model: string, p
 }
 
 export function getMedia(page: number = 1, limit: number = 20, type?: string) {
-  const offset = (page - 1) * limit;
+  const safePage = Math.max(1, Math.floor(Number(page) || 1));
+  const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
+  const offset = (safePage - 1) * safeLimit;
   let query = 'SELECT * FROM media';
   let countQuery = 'SELECT COUNT(*) as total FROM media';
   const params: any[] = [];
   
-  if (type) {
+  if (type === 'image' || type === 'video') {
     query += ' WHERE type = ?';
     countQuery += ' WHERE type = ?';
     params.push(type);
@@ -206,16 +208,20 @@ export function getMedia(page: number = 1, limit: number = 20, type?: string) {
   
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   
-  const items = db.prepare(query).all(...params, limit, offset);
+  const items = db.prepare(query).all(...params, safeLimit, offset);
   const countResult = db.prepare(countQuery).get(...params) as { total: number };
   
   return {
     items,
     total: countResult.total,
-    page,
-    limit,
-    totalPages: Math.ceil(countResult.total / limit)
+    page: safePage,
+    limit: safeLimit,
+    totalPages: Math.ceil(countResult.total / safeLimit)
   };
+}
+
+export function getMediaById(id: number) {
+  return db.prepare('SELECT * FROM media WHERE id = ?').get(id);
 }
 
 // ==================== 日志管理 ====================
@@ -260,6 +266,7 @@ export default {
   getStats,
   saveMedia,
   getMedia,
+  getMediaById,
   addLog,
   getLogs,
   clearLogs

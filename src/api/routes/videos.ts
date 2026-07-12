@@ -6,6 +6,7 @@ import { tokenSplit } from '@/api/controllers/core.ts';
 import { generateVideoWithRetry, DEFAULT_MODEL } from '@/api/controllers/videos.ts';
 import util from '@/lib/util.ts';
 import db from '@/lib/database.ts';
+import { persistMediaArtifact } from '@/lib/media-storage.ts';
 import APIException from '@/lib/exceptions/APIException.ts';
 import EX from '@/api/consts/exceptions.ts';
 
@@ -73,7 +74,7 @@ export default {
             // 记录统计和媒体
             try {
                 db.recordCall(token, model, 0);
-                if (videoUrl) db.saveMedia('video', videoUrl, model, prompt, token);
+                if (videoUrl) await persistMediaArtifact('video', videoUrl, model, prompt, token);
             } catch (e) {
                 // 忽略数据库错误
             }

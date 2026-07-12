@@ -6,6 +6,7 @@ import EX from "@/api/consts/exceptions.ts";
 import logger from "@/lib/logger.ts";
 import util from "@/lib/util.ts";
 import db from "@/lib/database.ts";
+import { persistMediaArtifact } from "@/lib/media-storage.ts";
 import { generateImagesWithRetry, DEFAULT_MODEL } from "./images.ts";
 import { generateVideo, DEFAULT_MODEL as DEFAULT_VIDEO_MODEL } from "./videos.ts";
 import { getCredit } from "./core.ts";
@@ -168,7 +169,7 @@ export async function createCompletion(
         // 记录统计和媒体
         try {
           db.recordCall(refreshToken, _model, creditsUsed, remainingCredits);
-          if (videoUrl) db.saveMedia('video', videoUrl, _model, promptText || lastMessage.content, refreshToken);
+          if (videoUrl) await persistMediaArtifact('video', videoUrl, _model, promptText || lastMessage.content, refreshToken);
         } catch (e) { /* 忽略数据库错误 */ }
 
         return {
@@ -247,9 +248,9 @@ export async function createCompletion(
       // 记录统计和媒体
       try {
         db.recordCall(refreshToken, _model || model, creditsUsed, remainingCredits);
-        generatedImageUrls.forEach(url => {
-          if (url) db.saveMedia('image', url, _model || model, promptText || lastMessage.content, refreshToken);
-        });
+        await Promise.all(generatedImageUrls
+          .filter(Boolean)
+          .map(url => persistMediaArtifact('image', url, _model || model, promptText || lastMessage.content, refreshToken)));
       } catch (e) { /* 忽略数据库错误 */ }
 
       return {
@@ -418,7 +419,7 @@ export async function createCompletionStream(
         { width, height, resolution: "720p", filePaths: imageUrls },
         refreshToken
       )
-        .then((videoUrl) => {
+        .then(async (videoUrl) => {
           clearInterval(progressInterval);
           clearTimeout(timeoutId);
 
@@ -427,7 +428,7 @@ export async function createCompletionStream(
           // 记录统计和媒体
           try {
             db.recordCall(refreshToken, _model, 0);
-            if (videoUrl) db.saveMedia('video', videoUrl, _model, promptText || lastMessage.content, refreshToken);
+            if (videoUrl) await persistMediaArtifact('video', videoUrl, _model, promptText || lastMessage.content, refreshToken);
           } catch (e) { /* 忽略数据库错误 */ }
 
           stream.write(
@@ -545,13 +546,13 @@ export async function createCompletionStream(
         { ratio: "1:1", resolution: "2k", filePaths: imageUrls },
         refreshToken
       )
-        .then((generatedUrls) => {
+        .then(async (generatedUrls) => {
           // 记录统计和媒体
           try {
             db.recordCall(refreshToken, _model || model, 0);
-            generatedUrls.forEach(url => {
-              if (url) db.saveMedia('image', url, _model || model, promptText || lastMessage.content, refreshToken);
-            });
+            await Promise.all(generatedUrls
+              .filter(Boolean)
+              .map(url => persistMediaArtifact('image', url, _model || model, promptText || lastMessage.content, refreshToken)));
           } catch (e) { /* 忽略数据库错误 */ }
 
           for (let i = 0; i < generatedUrls.length; i++) {

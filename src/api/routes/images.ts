@@ -5,6 +5,7 @@ import { DEFAULT_MODEL, generateImagesWithRetry } from "@/api/controllers/images
 import { tokenSplit } from "@/api/controllers/core.ts";
 import util from "@/lib/util.ts";
 import db from "@/lib/database.ts";
+import { persistMediaArtifact } from "@/lib/media-storage.ts";
 import APIException from "@/lib/exceptions/APIException.ts";
 import EX from "@/api/consts/exceptions.ts";
 
@@ -96,9 +97,9 @@ export default {
       // 记录统计和媒体
       try {
         db.recordCall(token, model, 0);
-        imageUrls.forEach(url => {
-          if (url) db.saveMedia('image', url, model, prompt, token);
-        });
+        await Promise.all(imageUrls
+          .filter(Boolean)
+          .map(url => persistMediaArtifact('image', url, model, prompt, token)));
       } catch (e) {
         // 忽略数据库错误，不影响主流程
       }

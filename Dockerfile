@@ -41,6 +41,8 @@ RUN mkdir -p /app/data
 # 环境变量
 ENV NODE_ENV=production
 ENV DB_PATH=/app/data/jimeng.db
+ENV MEDIA_DIR=/app/data/media
+ENV MEDIA_RETENTION_COUNT=50
 
 # 持久化数据卷
 VOLUME ["/app/data"]

@@ -57,123 +57,11 @@
         min-height: 100vh;
       }
 
-      .auth-page {
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 28px;
-      }
-
-      .auth-panel {
-        width: min(960px, 100%);
-        min-height: 560px;
-        display: grid;
-        grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-        background: rgba(25, 28, 34, 0.92);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        overflow: hidden;
-      }
-
-      .auth-brand {
-        position: relative;
-        padding: 42px;
-        background:
-          repeating-linear-gradient(135deg, rgba(51, 214, 195, 0.1) 0 1px, transparent 1px 16px),
-          var(--panel-2);
-        border-right: 1px solid var(--line);
-      }
-
-      .brand-mark {
-        width: 48px;
-        height: 48px;
-        display: grid;
-        place-items: center;
-        border: 1px solid var(--line-strong);
-        border-radius: var(--radius);
-        background: #111419;
-        color: var(--teal);
-        font-weight: 900;
-        font-size: 22px;
-      }
-
-      .auth-brand h1 {
-        margin: 34px 0 16px;
-        font-size: clamp(34px, 5vw, 64px);
-        line-height: 1.04;
-      }
-
-      .auth-brand p {
-        max-width: 420px;
-        margin: 0;
-        color: var(--muted);
-        line-height: 1.8;
-      }
-
-      .auth-metrics {
-        position: absolute;
-        left: 42px;
-        right: 42px;
-        bottom: 42px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-      }
-
-      .auth-metric {
-        min-height: 76px;
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: rgba(16, 17, 20, 0.62);
-      }
-
-      .auth-metric strong {
-        display: block;
-        font-size: 20px;
-        margin-bottom: 8px;
-      }
-
-      .auth-metric span {
-        display: block;
-        color: var(--soft);
-        font-size: 12px;
-      }
-
-      .auth-box {
-        padding: 42px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .eyebrow {
-        color: var(--teal);
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-      }
-
-      .auth-box h2,
       .modal-card h2 {
         margin: 0 0 24px;
         font-size: 24px;
       }
 
-      .form-group {
-        margin-bottom: 16px;
-      }
-
-      .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .field,
       .select {
         width: 100%;
         min-height: 44px;
@@ -185,7 +73,6 @@
         outline: none;
       }
 
-      .field:focus,
       .select:focus {
         border-color: var(--teal);
         box-shadow: 0 0 0 3px rgba(51, 214, 195, 0.14);
@@ -239,21 +126,10 @@
         transform: none;
       }
 
-      .error-msg {
-        min-height: 20px;
-        margin-top: 12px;
-        color: var(--red);
-        font-size: 13px;
-      }
-
       .dashboard {
-        display: none;
-        min-height: 100vh;
-      }
-
-      .dashboard.active {
         display: grid;
         grid-template-columns: 248px minmax(0, 1fr);
+        min-height: 100vh;
       }
 
       .sidebar {
@@ -333,15 +209,6 @@
 
       .tab-btn.active .icon {
         color: var(--teal);
-      }
-
-      .side-foot {
-        position: absolute;
-        left: 18px;
-        right: 18px;
-        bottom: 20px;
-        display: grid;
-        gap: 8px;
       }
 
       .workspace {
@@ -853,7 +720,7 @@
       }
 
       @media (max-width: 1100px) {
-        .dashboard.active {
+        .dashboard {
           grid-template-columns: 1fr;
         }
 
@@ -868,12 +735,6 @@
           grid-template-columns: repeat(3, 1fr);
         }
 
-        .side-foot {
-          position: static;
-          grid-template-columns: repeat(2, 1fr);
-          margin-top: 16px;
-        }
-
         .stat-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -884,25 +745,8 @@
       }
 
       @media (max-width: 760px) {
-        .auth-panel {
-          grid-template-columns: 1fr;
-        }
-
-        .auth-brand {
-          min-height: 340px;
-          border-right: 0;
-          border-bottom: 1px solid var(--line);
-        }
-
-        .auth-metrics {
-          position: static;
-          margin-top: 28px;
-        }
-
         .workspace,
-        .sidebar,
-        .auth-box,
-        .auth-brand {
+        .sidebar {
           padding: 18px;
         }
 
@@ -924,7 +768,6 @@
         }
 
         .nav,
-        .side-foot,
         .stat-grid,
         .detail-grid {
           grid-template-columns: 1fr;
@@ -943,53 +786,6 @@
   </head>
   <body>
     <div class="shell">
-      <div id="auth-page" class="auth-page">
-        <section class="auth-panel">
-          <div class="auth-brand">
-            <div class="brand-mark">J</div>
-            <h1>即梦 API<br />控制台</h1>
-            <p>面向本地服务的运行观测、日志排障与生成任务归档。</p>
-            <div class="auth-metrics">
-              <div class="auth-metric"><strong>SQLite</strong><span>本地持久化</span></div>
-              <div class="auth-metric"><strong>WAL</strong><span>轻量记录</span></div>
-              <div class="auth-metric"><strong>OpenAI</strong><span>兼容接口</span></div>
-            </div>
-          </div>
-
-          <div class="auth-box">
-            <div id="setup-form" style="display: none">
-              <div class="eyebrow">首次初始化</div>
-              <h2>设置管理员账号</h2>
-              <div class="form-group">
-                <label for="setup-username">用户名</label>
-                <input class="field" type="text" id="setup-username" autocomplete="username" placeholder="设置用户名" />
-              </div>
-              <div class="form-group">
-                <label for="setup-password">密码</label>
-                <input class="field" type="password" id="setup-password" autocomplete="new-password" placeholder="至少 6 位" />
-              </div>
-              <button class="btn primary" id="setup-submit">完成设置</button>
-              <div id="setup-error" class="error-msg"></div>
-            </div>
-
-            <div id="login-form" style="display: none">
-              <div class="eyebrow">管理员登录</div>
-              <h2>进入控制台</h2>
-              <div class="form-group">
-                <label for="login-username">用户名</label>
-                <input class="field" type="text" id="login-username" autocomplete="username" placeholder="输入用户名" />
-              </div>
-              <div class="form-group">
-                <label for="login-password">密码</label>
-                <input class="field" type="password" id="login-password" autocomplete="current-password" placeholder="输入密码" />
-              </div>
-              <button class="btn primary" id="login-submit">登录</button>
-              <div id="login-error" class="error-msg"></div>
-            </div>
-          </div>
-        </section>
-      </div>
-
       <main id="dashboard" class="dashboard">
         <aside class="sidebar">
           <div class="side-head">
@@ -1006,10 +802,6 @@
             <button class="tab-btn" data-tab="media"><span class="icon">▣</span><span>任务记录</span></button>
           </nav>
 
-          <div class="side-foot">
-            <button class="btn ghost" id="password-open">修改密码</button>
-            <button class="btn danger" id="logout-btn">退出登录</button>
-          </div>
         </aside>
 
         <section class="workspace">
@@ -1137,23 +929,6 @@
       </main>
     </div>
 
-    <div id="password-modal" class="modal">
-      <section class="modal-card" style="max-width: 460px">
-        <div class="modal-head">
-          <h2>修改密码</h2>
-          <button class="btn ghost" data-close-modal="password-modal">关闭</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="new-password">新密码</label>
-            <input class="field" type="password" id="new-password" placeholder="至少 6 位" autocomplete="new-password" />
-          </div>
-          <button class="btn primary" id="password-submit">确认修改</button>
-          <div id="password-error" class="error-msg"></div>
-        </div>
-      </section>
-    </div>
-
     <div id="media-modal" class="modal">
       <section class="modal-card">
         <div class="modal-head">
@@ -1219,68 +994,7 @@
         return payload;
       }
 
-      function bindEnter(inputSelector, action) {
-        const node = $(inputSelector);
-        node?.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") action();
-        });
-      }
-
-      async function checkAuth() {
-        try {
-          const data = await api("/dashboard/status");
-          if (!data.setupComplete) {
-            $("#setup-form").style.display = "block";
-            $("#login-form").style.display = "none";
-            return;
-          }
-
-          $("#setup-form").style.display = "none";
-          $("#login-form").style.display = "block";
-          if (data.authenticated) showDashboard();
-        } catch (error) {
-          showToast(error.message || "状态检查失败");
-        }
-      }
-
-      async function handleSetup() {
-        const username = $("#setup-username").value.trim();
-        const password = $("#setup-password").value;
-        setText("#setup-error", "");
-        try {
-          await api("/dashboard/setup", {
-            method: "POST",
-            body: JSON.stringify({ username, password }),
-          });
-          location.reload();
-        } catch (error) {
-          setText("#setup-error", error.message);
-        }
-      }
-
-      async function handleLogin() {
-        const username = $("#login-username").value.trim();
-        const password = $("#login-password").value;
-        setText("#login-error", "");
-        try {
-          await api("/dashboard/login", {
-            method: "POST",
-            body: JSON.stringify({ username, password }),
-          });
-          showDashboard();
-        } catch (error) {
-          setText("#login-error", error.message);
-        }
-      }
-
-      async function handleLogout() {
-        await api("/dashboard/logout", { method: "POST" });
-        location.reload();
-      }
-
-      function showDashboard() {
-        $("#auth-page").style.display = "none";
-        $("#dashboard").classList.add("active");
+      function initDashboard() {
         loadStats();
         startAutoRefresh();
       }
@@ -1506,7 +1220,7 @@
           ["模型", item.model || "-"],
           ["Key", item.key_preview || "-"],
           ["时间", item.created_at || "-"],
-          ["状态", item.status === "saved" ? "已记录" : "缺失"],
+          ["状态", item.status === "stored" ? "已落盘" : item.status === "remote" ? "仅远程" : "缺失"],
         ].forEach(([label, value]) => {
           const block = document.createElement("div");
           block.className = "meta";
@@ -1672,22 +1386,6 @@
         }
       }
 
-      async function changePassword() {
-        const newPassword = $("#new-password").value;
-        setText("#password-error", "");
-        try {
-          await api("/dashboard/password", {
-            method: "POST",
-            body: JSON.stringify({ newPassword }),
-          });
-          $("#new-password").value = "";
-          $("#password-modal").classList.remove("active");
-          showToast("密码已修改");
-        } catch (error) {
-          setText("#password-error", error.message);
-        }
-      }
-
       function refreshActiveTab() {
         if (state.activeTab === "stats") loadStats();
         if (state.activeTab === "logs") loadLogs();
@@ -1695,11 +1393,6 @@
       }
 
       function bindEvents() {
-        $("#setup-submit").addEventListener("click", handleSetup);
-        $("#login-submit").addEventListener("click", handleLogin);
-        $("#logout-btn").addEventListener("click", handleLogout);
-        $("#password-open").addEventListener("click", () => $("#password-modal").classList.add("active"));
-        $("#password-submit").addEventListener("click", changePassword);
         $("#refresh-active").addEventListener("click", refreshActiveTab);
         $("#stats-refresh").addEventListener("click", () => loadStats());
         $("#logs-refresh").addEventListener("click", () => loadLogs());
@@ -1711,10 +1404,6 @@
           state.mediaPage = 1;
           loadMedia();
         });
-
-        bindEnter("#setup-password", handleSetup);
-        bindEnter("#login-password", handleLogin);
-        bindEnter("#new-password", changePassword);
 
         $$(".tab-btn").forEach((button) => {
           button.addEventListener("click", () => switchTab(button.dataset.tab));
@@ -1760,7 +1449,7 @@
       }
 
       bindEvents();
-      checkAuth();
+      initDashboard();
     </script>
   </body>
 </html>

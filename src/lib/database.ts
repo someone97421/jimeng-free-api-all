@@ -15,23 +15,6 @@ db.pragma('journal_mode = WAL');
 
 // 初始化表结构
 db.exec(`
-  -- 用户表（管理员账号）
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now', 'localtime'))
-  );
-
-  -- Session表
-  CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    expires_at TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-
   -- API Key统计表
   CREATE TABLE IF NOT EXISTS key_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,6 +36,10 @@ db.exec(`
     model TEXT NOT NULL,
     prompt TEXT,
     key_preview TEXT,
+    local_path TEXT,
+    file_size INTEGER DEFAULT 0,
+    content_type TEXT,
+    stored_at TEXT,
     created_at TEXT DEFAULT (datetime('now', 'localtime'))
   );
 
@@ -71,15 +58,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_logs_created ON logs(created_at DESC);
 `);
 
-// 密码哈希
-export function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-// 生成Session ID
-export function generateSessionId(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
+// 为已有数据库补充本地媒体存储字段，保留原有统计和媒体记录
+const mediaColumns = db.prepare('PRAGMA table_info(media)').all() as { name: string }[];
+const mediaColumnNames = new Set(mediaColumns.map(column => column.name));
+if (!mediaColumnNames.has('local_path')) db.exec('ALTER TABLE media ADD COLUMN local_path TEXT');
+if (!mediaColumnNames.has('file_size')) db.exec('ALTER TABLE media ADD COLUMN file_size INTEGER DEFAULT 0');
+if (!mediaColumnNames.has('content_type')) db.exec('ALTER TABLE media ADD COLUMN content_type TEXT');
+if (!mediaColumnNames.has('stored_at')) db.exec('ALTER TABLE media ADD COLUMN stored_at TEXT');
 
 // Key预览（隐藏中间部分）
 export function keyPreview(key: string): string {
@@ -90,53 +75,6 @@ export function keyPreview(key: string): string {
 // Key哈希
 export function hashKey(key: string): string {
   return crypto.createHash('md5').update(key).digest('hex');
-}
-
-// ==================== 用户管理 ====================
-
-export function isSetupComplete(): boolean {
-  const result = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-  return result.count > 0;
-}
-
-export function createUser(username: string, password: string): void {
-  db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, hashPassword(password));
-}
-
-export function validateUser(username: string, password: string): number | null {
-  const user = db.prepare('SELECT id, password_hash FROM users WHERE username = ?').get(username) as { id: number; password_hash: string } | undefined;
-  if (user && user.password_hash === hashPassword(password)) {
-    return user.id;
-  }
-  return null;
-}
-
-export function changePassword(userId: number, newPassword: string): void {
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), userId);
-}
-
-// ==================== Session管理 ====================
-
-export function createSession(userId: number): string {
-  const sessionId = generateSessionId();
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24小时
-  db.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').run(sessionId, userId, expiresAt);
-  return sessionId;
-}
-
-export function validateSession(sessionId: string): number | null {
-  const session = db.prepare('SELECT user_id, expires_at FROM sessions WHERE id = ?').get(sessionId) as { user_id: number; expires_at: string } | undefined;
-  if (session && new Date(session.expires_at) > new Date()) {
-    return session.user_id;
-  }
-  if (session) {
-    db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
-  }
-  return null;
-}
-
-export function deleteSession(sessionId: string): void {
-  db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
 }
 
 // ==================== 统计管理 ====================
@@ -187,9 +125,34 @@ export function getStats() {
 
 // ==================== 媒体管理 ====================
 
-export function saveMedia(type: 'image' | 'video', url: string, model: string, prompt: string, key: string): void {
-  db.prepare('INSERT INTO media (type, url, model, prompt, key_preview) VALUES (?, ?, ?, ?, ?)')
+export function saveMedia(type: 'image' | 'video', url: string, model: string, prompt: string, key: string): number {
+  const result = db.prepare('INSERT INTO media (type, url, model, prompt, key_preview) VALUES (?, ?, ?, ?, ?)')
     .run(type, url, model, prompt, keyPreview(key));
+  return Number(result.lastInsertRowid);
+}
+
+export function updateMediaStorage(id: number, localPath: string, fileSize: number, contentType: string): void {
+  db.prepare(`
+    UPDATE media
+    SET local_path = ?, file_size = ?, content_type = ?, stored_at = datetime('now', 'localtime')
+    WHERE id = ?
+  `).run(localPath, fileSize, contentType, id);
+}
+
+export function clearMediaStorage(id: number): void {
+  db.prepare(`
+    UPDATE media
+    SET local_path = NULL, file_size = 0, content_type = NULL, stored_at = NULL
+    WHERE id = ?
+  `).run(id);
+}
+
+export function getMediaStorageRecords() {
+  return db.prepare(`
+    SELECT id, local_path
+    FROM media
+    ORDER BY id DESC
+  `).all() as { id: number; local_path: string | null }[];
 }
 
 export function getMedia(page: number = 1, limit: number = 20, type?: string) {
@@ -255,16 +218,12 @@ export function clearLogs(): void {
 }
 
 export default {
-  isSetupComplete,
-  createUser,
-  validateUser,
-  changePassword,
-  createSession,
-  validateSession,
-  deleteSession,
   recordCall,
   getStats,
   saveMedia,
+  updateMediaStorage,
+  clearMediaStorage,
+  getMediaStorageRecords,
   getMedia,
   getMediaById,
   addLog,
